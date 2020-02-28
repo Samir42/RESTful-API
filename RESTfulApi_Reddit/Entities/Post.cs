@@ -5,7 +5,7 @@ namespace RESTfulApi_Reddit.Entities {
     public class Post {
         public int Id { get; set; }
         [Required]
-        [MaxLength(15)]
+        [MaxLength(50)]
         public string Title { get; set; }
 
         [MaxLength(200)]

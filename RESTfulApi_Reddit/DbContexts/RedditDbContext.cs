@@ -23,7 +23,14 @@ namespace RESTfulApi_Reddit.DbContexts {
         public DbSet<Community> Communities { get; set; }
         public DbSet<UserPost> UserPosts { get; set; }
 
+        public RedditDbContext(DbContextOptions<RedditDbContext> options)
+          : base(options) {
+
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            // seed the database with dummy data
+
             modelBuilder.Entity<User>()
                 .HasData(
                     new User() {
@@ -111,6 +118,11 @@ namespace RESTfulApi_Reddit.DbContexts {
                     UserId = 5,
                     Title = "This post created By Larry second time",
                 });
+
+            modelBuilder.Entity<CommunitiesPosts>()
+                .HasOne(x => x.Community)
+                .WithMany(x => x.CommunitiesPosts)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<User>()
                 .Property(p => p.RegisteredAt)
