@@ -7,6 +7,7 @@ using RESTfulApi_Reddit.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace RESTfulApi_Reddit.Controllers {
@@ -34,11 +35,19 @@ namespace RESTfulApi_Reddit.Controllers {
                 return BadRequest();
             }
 
-
             var userPostsFromRepo = await _postRepository.GetUserPostsAsync(postsResourceParameters);
 
-            var shapedUserPosts = _mapper.Map<IEnumerable<UserPostDto>>(userPostsFromRepo).ShapeData(postsResourceParameters.Fields);
+            var paginationMetadata = new {
+                totalCount = userPostsFromRepo.TotalCount,
+                pageSize = userPostsFromRepo.PageSize,
+                currentPage = userPostsFromRepo.CurrentPage,
+                totalPages = userPostsFromRepo.TotalPages
+            };
 
+            Response.Headers.Add("X-Pagination",
+                JsonSerializer.Serialize(paginationMetadata));
+
+            var shapedUserPosts = _mapper.Map<IEnumerable<UserPostDto>>(userPostsFromRepo).ShapeData(postsResourceParameters.Fields);
 
             return Ok(shapedUserPosts);
         }
