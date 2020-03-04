@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RESTfulApi_Reddit.DbContexts;
 using RESTfulApi_Reddit.Entities;
+using RESTfulApi_Reddit.Helpers;
+using RESTfulApi_Reddit.ResourceParameters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,8 +17,22 @@ namespace RESTfulApi_Reddit.Services {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<IEnumerable<UserPost>> GetUserPosts(int userId) {
-            return await _context.UserPosts.Include(x => x.User).Where(x => x.UserId == userId).ToListAsync();
+        public async Task<PagedList<UserPost>> GetUserPostsAsync(PostsResourceParameters postsResourceParameters) {
+
+            if (postsResourceParameters == null) {
+                throw new ArgumentNullException(nameof(postsResourceParameters));
+            }
+
+            var collection = _context.UserPosts as IQueryable<UserPost>;
+
+            if (!string.IsNullOrWhiteSpace(postsResourceParameters.SearchQuery)) {
+                var searchQuery = postsResourceParameters.SearchQuery.Trim();
+
+                collection = collection.Where(x => x.Text.Contains(searchQuery) || x.Title.Contains(searchQuery));
+            }
+
+
+            return await PagedList<UserPost>.Create(collection, postsResourceParameters.PageNumber, postsResourceParameters.PageSize);
         }
 
         public async Task<bool> SaveChangesAsync() {

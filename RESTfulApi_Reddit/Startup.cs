@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RESTfulApi_Reddit.DbContexts;
 using RESTfulApi_Reddit.Services;
-
+using System;
 
 namespace RESTfulApi_Reddit {
     public class Startup {
@@ -18,12 +19,23 @@ namespace RESTfulApi_Reddit {
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services) {
-            services.AddMvc(option => option.EnableEndpointRouting = false);
+            services.AddMvc(option => option.EnableEndpointRouting = false)
+                .AddNewtonsoftJson(serv => serv.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore); ;
+
+            //services.AddNewtonsoftJson(setupAction =>
+            //{
+            //    setupAction.SerializerSettings.ContractResolver =
+            //       new CamelCasePropertyNamesContractResolver();
+            //})
 
             services.AddDbContext<RedditDbContext>(options => options.UseSqlServer(
                     @"Server=(localdb)\mssqllocaldb;Database=RedditDB;Trusted_Connection=True;"));
 
             services.AddScoped<IPostRepository, PostRepository>();
+
+            services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
+
+            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
