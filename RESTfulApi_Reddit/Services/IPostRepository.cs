@@ -6,6 +6,7 @@ using RESTfulApi_Reddit.ResourceParameters;
 
 namespace RESTfulApi_Reddit.Services {
     public interface IPostRepository {
+        Task<UserPost> GetUserPostAsync(int userPostId);
         Task<PagedList<UserPost>> GetUserPostsAsync(PostsResourceParameters postsResourceParameters);
         Task<bool> SaveChangesAsync();
     }

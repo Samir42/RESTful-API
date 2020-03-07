@@ -10,6 +10,7 @@ namespace RESTfulApi_Reddit.Profiles {
     public class UserPostProfile : Profile{
         public UserPostProfile() {
             CreateMap<UserPost, UserPostDto>();
+            //CreateMap<UserPostDto, UserPost>();
         }
     }
 }

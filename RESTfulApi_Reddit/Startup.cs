@@ -2,6 +2,8 @@ using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using RESTfulApi_Reddit.DbContexts;
 using RESTfulApi_Reddit.Services;
 using System;
+using System.Linq;
 
 namespace RESTfulApi_Reddit {
     public class Startup {
@@ -27,6 +30,15 @@ namespace RESTfulApi_Reddit {
             //    setupAction.SerializerSettings.ContractResolver =
             //       new CamelCasePropertyNamesContractResolver();
             //})
+
+            services.Configure<MvcOptions>(config => {
+                var newtonsoftJsonOutputFormatter = config.OutputFormatters
+                      .OfType<NewtonsoftJsonOutputFormatter>()?.FirstOrDefault();
+
+                if (newtonsoftJsonOutputFormatter != null) {
+                    newtonsoftJsonOutputFormatter.SupportedMediaTypes.Add("application/vnd.marvin.hateoas+json");
+                }
+            });
 
             services.AddDbContext<RedditDbContext>(options => options.UseSqlServer(
                     @"Server=(localdb)\mssqllocaldb;Database=RedditDB;Trusted_Connection=True;"));

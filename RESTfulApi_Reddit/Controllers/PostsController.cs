@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;
 using RESTfulApi_Reddit.ResourceParameters;
@@ -18,7 +19,7 @@ namespace RESTfulApi_Reddit.Controllers {
         private readonly IPropertyCheckerService _propertyCheckerService;
         private readonly IMapper _mapper;
 
-        public PostsController(IPostRepository postRepository, IPropertyCheckerService propertyCheckerService,IMapper mapper) {
+        public PostsController(IPostRepository postRepository, IPropertyCheckerService propertyCheckerService, IMapper mapper) {
             _postRepository = postRepository ??
                 throw new ArgumentNullException(nameof(postRepository));
             _propertyCheckerService = propertyCheckerService ??
@@ -27,7 +28,73 @@ namespace RESTfulApi_Reddit.Controllers {
                 throw new ArgumentNullException(nameof(mapper));
         }
 
-        [HttpGet(Name ="GetUserPostsForUser")]
+        //We define inside Produces what we will return . This means we'll return app/json and app/hateoas+json
+        [Produces("application/json",
+            "application/vnd.marvin.hateoas+json")]
+        [HttpGet("{userPostId}", Name = "GetUserPost")]
+        public async Task<IActionResult> GetUserPost(int userPostId, string fields,
+            [FromHeader(Name = "Accept")]string mediaType) {
+
+            // we will not return another type 
+            if (!MediaTypeHeaderValue.TryParse(mediaType,
+                out MediaTypeHeaderValue parsedMediaType)) {
+                return BadRequest();
+            }
+
+            if (!_propertyCheckerService.TypeHasProperties<UserPostDto>(fields)) {
+                return BadRequest();
+            }
+
+            var userPostFromRepo = await _postRepository.GetUserPostAsync(userPostId);
+
+            if (userPostFromRepo == null) {
+                return NotFound();
+            }
+
+            //Check whether parsedMediaType contains hateoas
+            var includeLinks = parsedMediaType.SubTypeWithoutSuffix
+               .EndsWith("hateoas", StringComparison.InvariantCultureIgnoreCase);
+
+            IEnumerable<LinkDto> links = new List<LinkDto>();
+
+
+            var shapedUserPost = _mapper.Map<UserPostDto>(userPostFromRepo).ShapeData(fields) as IDictionary<string,object>;
+
+            if (includeLinks) {
+                links = CreateLinksForUserPost(userPostId, fields);
+                shapedUserPost.Add("links", links);
+            }
+
+            return Ok(shapedUserPost);
+
+
+            //var resourceToReturn = new {
+            //    value=
+            //}
+
+
+            //we pass .hateoas to identify that what is accepted type. full or friendly
+
+            //var primaryMediaType = includeLinks ?
+            //   parsedMediaType.SubTypeWithoutSuffix
+            //   .Substring(0, parsedMediaType.SubTypeWithoutSuffix.Length - 8)
+            //   : parsedMediaType.SubTypeWithoutSuffix;
+
+            //if(primaryMediaType == "vnd.marvin.userpos.full") {
+            //    // i will return here userpost owner name and surname as Fulllname
+            //    // else just send the userpost data
+
+            //    var fullResourceToReturn = _mapper.Map<AuthorFullDto>(authorFromRepo)
+            //            .ShapeData(fields) as IDictionary<string, object>;
+            //}
+        }
+
+        [HttpDelete(Name ="DeleteUserPost")]
+        public async Task<IActionResult> DeleteUserPost(int userPostId) {
+            return null;
+        }
+
+        [HttpGet(Name = "GetUserPostsForUser")]
         [HttpHead]
         public async Task<IActionResult> GetUserPosts([FromQuery]PostsResourceParameters postsResourceParameters) {
 
@@ -47,7 +114,7 @@ namespace RESTfulApi_Reddit.Controllers {
             Response.Headers.Add("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));
 
-            var links = CreateLinksForAuthors(postsResourceParameters,
+            var links = CreateLinksForUserPosts(postsResourceParameters,
                 userPostsFromRepo.HasNext,
                 userPostsFromRepo.HasPrevious);
 
@@ -55,7 +122,7 @@ namespace RESTfulApi_Reddit.Controllers {
 
             var shapedUserPostsWithLinks = shapedUserPosts.Select(userPost => {
                 var userPostAsDictionary = userPost as IDictionary<string, object>;
-                var userPostLinks = CreateLinksForAuthor((int)userPostAsDictionary["Id"], null);
+                var userPostLinks = CreateLinksForUserPost((int)userPostAsDictionary["Id"], null);
                 userPostAsDictionary.Add("links", userPostLinks);
                 return userPostAsDictionary;
             });
@@ -71,49 +138,49 @@ namespace RESTfulApi_Reddit.Controllers {
         }
 
 
-        private IEnumerable<LinkDto> CreateLinksForAuthor(int userId,string fields) {
+        private IEnumerable<LinkDto> CreateLinksForUserPost(int userPostId, string fields) {
             var links = new List<LinkDto>();
 
 
             //If data shaping haven't used    return simple Link , else return shaped data link
             if (string.IsNullOrWhiteSpace(fields)) {
-                links.Add(new LinkDto(Url.Link("GetAuthor", new { userId }),
+                links.Add(new LinkDto(Url.Link("GetUserPost", new { userPostId }),
                     "self",
                     "GET"));
             }
             else {
-                links.Add(new LinkDto(Url.Link("GetAuthor", new { userId, fields }),
+                links.Add(new LinkDto(Url.Link("GetUserPost", new { userPostId, fields }),
                     "self",
                     "GET"));
             }
 
 
             links.Add(
-              new LinkDto(Url.Link("DeleteUserPost", new { userId }),
+              new LinkDto(Url.Link("DeleteUserPost", new { userPostId }),
               "delete_userpost_for_user",
               "DELETE"));
 
             links.Add(
-                new LinkDto(Url.Link("CreateUserPostForUser", new { userId }),
+                new LinkDto(Url.Link("CreateUserPostForUser", new { userPostId }),
                 "create_userpost_for_user",
                 "POST"));
 
-            links.Add(
-               new LinkDto(Url.Link("GetUserPostsForUser", new { userId }),
-               "userposts",
-               "GET"));
+            //links.Add(
+            //   new LinkDto(Url.Link("GetUserPostsForUser", new { userId }),
+            //   "userposts",
+            //   "GET"));
 
             return links;
         }
 
 
-        private IEnumerable<LinkDto> CreateLinksForAuthors(PostsResourceParameters postsResourceParameters,
-            bool hasNext,bool hasPrevious) {
+        private IEnumerable<LinkDto> CreateLinksForUserPosts(PostsResourceParameters postsResourceParameters,
+            bool hasNext, bool hasPrevious) {
 
             var links = new List<LinkDto>();
 
-            links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters,ResourceUriType.CurrentPage),
-                "self","GET"));
+            links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.CurrentPage),
+                "self", "GET"));
 
             if (hasNext) {
                 links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.NextPage),
@@ -139,7 +206,7 @@ namespace RESTfulApi_Reddit.Controllers {
                     return Url.Link("GetUserPostsForUser",
                         new {
                             fields = postsResourceParameters.Fields,
-                            pageNumber = postsResourceParameters.PageNumber-1,
+                            pageNumber = postsResourceParameters.PageNumber - 1,
                             pageSize = postsResourceParameters.PageSize,
                             searchQuery = postsResourceParameters.SearchQuery
                         });
@@ -147,7 +214,7 @@ namespace RESTfulApi_Reddit.Controllers {
                     return Url.Link("GetUserPostsForUser",
                         new {
                             fields = postsResourceParameters.Fields,
-                            pageNumber = postsResourceParameters.PageNumber+1,
+                            pageNumber = postsResourceParameters.PageNumber + 1,
                             pageSize = postsResourceParameters.PageSize,
                             searchQuery = postsResourceParameters.SearchQuery
                         });

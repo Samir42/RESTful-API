@@ -17,6 +17,14 @@ namespace RESTfulApi_Reddit.Services {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        public async Task<UserPost> GetUserPostAsync(int userPostId) {
+            if(userPostId <= 0) {
+                throw new ArgumentException("userPostId can not be less than 1");
+            }
+
+            return await _context.UserPosts.FirstOrDefaultAsync(x => x.Id == userPostId);
+        }
+
         public async Task<PagedList<UserPost>> GetUserPostsAsync(PostsResourceParameters postsResourceParameters) {
 
             if (postsResourceParameters == null) {
