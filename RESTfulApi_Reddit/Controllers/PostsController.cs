@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;
 using RESTfulApi_Reddit.ResourceParameters;
@@ -18,14 +19,18 @@ namespace RESTfulApi_Reddit.Controllers {
         private readonly IPostRepository _postRepository;
         private readonly IPropertyCheckerService _propertyCheckerService;
         private readonly IMapper _mapper;
+        private readonly IUserRepository _userRepository;
 
-        public PostsController(IPostRepository postRepository, IPropertyCheckerService propertyCheckerService, IMapper mapper) {
+        public PostsController(IPostRepository postRepository, IUserRepository userRepository,
+            IPropertyCheckerService propertyCheckerService, IMapper mapper) {
             _postRepository = postRepository ??
                 throw new ArgumentNullException(nameof(postRepository));
             _propertyCheckerService = propertyCheckerService ??
                 throw new ArgumentNullException(nameof(propertyCheckerService));
             _mapper = mapper ??
                 throw new ArgumentNullException(nameof(mapper));
+            _userRepository = userRepository ??
+               throw new ArgumentNullException(nameof(userRepository));
         }
 
         //We define inside Produces what we will return . This means we'll return app/json and app/hateoas+json
@@ -102,6 +107,25 @@ namespace RESTfulApi_Reddit.Controllers {
             await _postRepository.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        [HttpPost(Name ="CreateUserPostForUser")]
+        public async Task<IActionResult> CreateUserPost(int userId,UserPostForCreationDto userPostForCreationDto) {
+            if (! await _userRepository.UserExistsAsync(userId)) {
+                return NotFound();
+            }
+
+            var userPostEntity = _mapper.Map<UserPost>(userPostForCreationDto);
+
+            _postRepository.AddUserPost(userId, userPostEntity);
+
+            await _postRepository.SaveChangesAsync();
+
+            var userPostToReturn = _mapper.Map<UserPostDto>(userPostEntity);
+
+            return CreatedAtRoute("GetUserPostsForUser",
+                new { userId = userId, userPostId = userPostToReturn.Id },
+                userPostToReturn);
         }
 
         [HttpGet(Name = "GetUserPostsForUser")]

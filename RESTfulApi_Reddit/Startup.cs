@@ -44,6 +44,7 @@ namespace RESTfulApi_Reddit {
                     @"Server=(localdb)\mssqllocaldb;Database=RedditDB;Trusted_Connection=True;"));
 
             services.AddScoped<IPostRepository, PostRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
 
             services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
 
