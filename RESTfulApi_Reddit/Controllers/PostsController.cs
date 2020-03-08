@@ -89,9 +89,19 @@ namespace RESTfulApi_Reddit.Controllers {
             //}
         }
 
-        [HttpDelete(Name ="DeleteUserPost")]
+        [HttpDelete("{userPostId}",Name ="DeleteUserPost")]
         public async Task<IActionResult> DeleteUserPost(int userPostId) {
-            return null;
+            var userPost = await _postRepository.GetUserPostAsync(userPostId);
+
+            if (userPost == null) {
+                return NotFound();
+            }
+
+            _postRepository.DeleteUserPost(userPost);
+
+            await _postRepository.SaveChangesAsync();
+
+            return NoContent();
         }
 
         [HttpGet(Name = "GetUserPostsForUser")]

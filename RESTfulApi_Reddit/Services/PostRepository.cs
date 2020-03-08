@@ -43,6 +43,14 @@ namespace RESTfulApi_Reddit.Services {
             return await PagedList<UserPost>.Create(collection, postsResourceParameters.PageNumber, postsResourceParameters.PageSize);
         }
 
+        public void DeleteUserPost(UserPost userPost) {
+            if(userPost == null) {
+                throw new ArgumentNullException(nameof(userPost));
+            }
+
+            _context.Remove(userPost);
+        }
+
         public async Task<bool> SaveChangesAsync() {
             return (await _context.SaveChangesAsync() > 0);
         }
