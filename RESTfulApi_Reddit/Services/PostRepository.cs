@@ -10,8 +10,6 @@ using System.Threading.Tasks;
 
 namespace RESTfulApi_Reddit.Services
 {
-    
-
     public class PostRepository : IPostRepository
     {
 

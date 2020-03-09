@@ -115,6 +115,7 @@ namespace RESTfulApi_Reddit.Controllers {
                 return NotFound();
             }
 
+            // error
             var userPostEntity = _mapper.Map<UserPost>(userPostForCreationDto);
 
             _postRepository.AddUserPost(userId, userPostEntity);
