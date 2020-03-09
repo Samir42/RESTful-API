@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using RESTfulApi_Reddit.Entities;
@@ -63,7 +64,7 @@ namespace RESTfulApi_Reddit.Controllers {
             IEnumerable<LinkDto> links = new List<LinkDto>();
 
 
-            var shapedUserPost = _mapper.Map<UserPostDto>(userPostFromRepo).ShapeData(fields) as IDictionary<string,object>;
+            var shapedUserPost = _mapper.Map<UserPostDto>(userPostFromRepo).ShapeData(fields) as IDictionary<string, object>;
 
             if (includeLinks) {
                 links = CreateLinksForUserPost(userPostId, fields);
@@ -94,7 +95,7 @@ namespace RESTfulApi_Reddit.Controllers {
             //}
         }
 
-        [HttpDelete("{userPostId}",Name ="DeleteUserPost")]
+        [HttpDelete("{userPostId}", Name = "DeleteUserPost")]
         public async Task<IActionResult> DeleteUserPost(int userPostId) {
             var userPost = await _postRepository.GetUserPostAsync(userPostId);
 
@@ -109,9 +110,9 @@ namespace RESTfulApi_Reddit.Controllers {
             return NoContent();
         }
 
-        [HttpPost(Name ="CreateUserPostForUser")]
-        public async Task<IActionResult> CreateUserPost(int userId,UserPostForCreationDto userPostForCreationDto) {
-            if (! await _userRepository.UserExistsAsync(userId)) {
+        [HttpPost(Name = "CreateUserPostForUser")]
+        public async Task<IActionResult> CreateUserPost(int userId, UserPostForCreationDto userPostForCreationDto) {
+            if (!await _userRepository.UserExistsAsync(userId)) {
                 return NotFound();
             }
 
@@ -129,8 +130,30 @@ namespace RESTfulApi_Reddit.Controllers {
                 userPostToReturn);
         }
 
+        [HttpPatch("{userPostId}")]
+        public async Task<IActionResult> PartiallyUpdateUserPostForUser(int userId,int userPostId,
+            JsonPatchDocument<UserPostForUpdateDto> patchDocument)
+        {
+            if(! await _userRepository.UserExistsAsync(userId))
+            {
+                return NotFound();
+            }
+
+            var userPostFromRepo = _postRepository.GetUserPostAsync(userId, userPostId);
+
+            //If does not exists do something 
+            if(userPostFromRepo == null)
+            {
+                //i have to do something here
+            }
+
+            //else create
+
+            return null;
+        }
+
         [HttpPut("{userPostId}",Name ="UpdateUserPostForUser")]
-        public async Task<IActionResult> UpdateUserPost(int userId,int userPostId,UserPostForUpdateDto userPost)
+        public async Task<IActionResult> UpdateUserPostForUser(int userId,int userPostId,UserPostForUpdateDto userPost)
         {
             if(! await _userRepository.UserExistsAsync(userId))
             {
