@@ -2,7 +2,7 @@
 using RESTfulApi_Reddit.DbContexts;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
-using RESTfulApi_Reddit.ResourceParameters;
+using RESTfulApi_Reddit.ResourceParameter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,7 +45,7 @@ namespace RESTfulApi_Reddit.Services
             return await _context.UserPosts.FirstOrDefaultAsync(x => x.Id == userPostId && x.UserId == userId);
         }
 
-        public async Task<PagedList<UserPost>> GetUserPostsAsync(PostsResourceParameters postsResourceParameters)
+        public async Task<PagedList<UserPost>> GetUserPostsAsync(ResourceParameters postsResourceParameters)
         {
 
             if (postsResourceParameters == null)

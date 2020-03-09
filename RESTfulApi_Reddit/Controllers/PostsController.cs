@@ -5,7 +5,7 @@ using Microsoft.Net.Http.Headers;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;
-using RESTfulApi_Reddit.ResourceParameters;
+using RESTfulApi_Reddit.ResourceParameter;
 using RESTfulApi_Reddit.Services;
 using System;
 using System.Collections.Generic;
@@ -158,7 +158,7 @@ namespace RESTfulApi_Reddit.Controllers
             {
                 var userPostDto = new UserPostForUpdateDto();
 
-                //AddValidation
+                //Add Validation
                 patchDocument.ApplyTo(userPostDto, ModelState);
 
                 if (!TryValidateModel(userPostDto))
@@ -237,7 +237,7 @@ namespace RESTfulApi_Reddit.Controllers
 
         [HttpGet(Name = "GetUserPostsForUser")]
         [HttpHead]
-        public async Task<IActionResult> GetUserPosts([FromQuery]PostsResourceParameters postsResourceParameters)
+        public async Task<IActionResult> GetUserPosts([FromQuery] ResourceParameters postsResourceParameters)
         {
 
             if (!_propertyCheckerService.TypeHasProperties<UserPostDto>(postsResourceParameters.Fields))
@@ -323,24 +323,24 @@ namespace RESTfulApi_Reddit.Controllers
         }
 
 
-        private IEnumerable<LinkDto> CreateLinksForUserPosts(PostsResourceParameters postsResourceParameters,
+        private IEnumerable<LinkDto> CreateLinksForUserPosts(ResourceParameters resourceParameters,
             bool hasNext, bool hasPrevious)
         {
 
             var links = new List<LinkDto>();
 
-            links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.CurrentPage),
+            links.Add(new LinkDto(CreateUserPostsResourceUri(resourceParameters, ResourceUriType.CurrentPage),
                 "self", "GET"));
 
             if (hasNext)
             {
-                links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.NextPage),
+                links.Add(new LinkDto(CreateUserPostsResourceUri(resourceParameters, ResourceUriType.NextPage),
                "self", "GET"));
             }
 
             if (hasPrevious)
             {
-                links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.PreviousPage),
+                links.Add(new LinkDto(CreateUserPostsResourceUri(resourceParameters, ResourceUriType.PreviousPage),
                "self", "GET"));
             }
 
@@ -349,7 +349,7 @@ namespace RESTfulApi_Reddit.Controllers
         }
 
 
-        private string CreateUserPostsResourceUri(PostsResourceParameters postsResourceParameters,
+        private string CreateUserPostsResourceUri(ResourceParameters resourceParameters,
             ResourceUriType type)
         {
 
@@ -360,19 +360,19 @@ namespace RESTfulApi_Reddit.Controllers
                     return Url.Link("GetUserPostsForUser",
                         new
                         {
-                            fields = postsResourceParameters.Fields,
-                            pageNumber = postsResourceParameters.PageNumber - 1,
-                            pageSize = postsResourceParameters.PageSize,
-                            searchQuery = postsResourceParameters.SearchQuery
+                            fields = resourceParameters.Fields,
+                            pageNumber = resourceParameters.PageNumber - 1,
+                            pageSize = resourceParameters.PageSize,
+                            searchQuery = resourceParameters.SearchQuery
                         });
                 case ResourceUriType.NextPage:
                     return Url.Link("GetUserPostsForUser",
                         new
                         {
-                            fields = postsResourceParameters.Fields,
-                            pageNumber = postsResourceParameters.PageNumber + 1,
-                            pageSize = postsResourceParameters.PageSize,
-                            searchQuery = postsResourceParameters.SearchQuery
+                            fields = resourceParameters.Fields,
+                            pageNumber = resourceParameters.PageNumber + 1,
+                            pageSize = resourceParameters.PageSize,
+                            searchQuery = resourceParameters.SearchQuery
                         });
                 // Do nothing here. Because [default] will do what it takes.
                 case ResourceUriType.CurrentPage:
@@ -380,10 +380,10 @@ namespace RESTfulApi_Reddit.Controllers
                     return Url.Link("GetUserPostsForUser",
                        new
                        {
-                           fields = postsResourceParameters.Fields,
-                           pageNumber = postsResourceParameters.PageNumber,
-                           pageSize = postsResourceParameters.PageSize,
-                           searchQuery = postsResourceParameters.SearchQuery
+                           fields = resourceParameters.Fields,
+                           pageNumber = resourceParameters.PageNumber,
+                           pageSize = resourceParameters.PageSize,
+                           searchQuery = resourceParameters.SearchQuery
                        });
 
             }
