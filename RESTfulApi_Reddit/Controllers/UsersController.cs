@@ -9,6 +9,7 @@ using RESTfulApi_Reddit.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace RESTfulApi_Reddit.Controllers
@@ -39,7 +40,7 @@ namespace RESTfulApi_Reddit.Controllers
             "application/vnd.marvin.user.full.hateoas+json",
             "application/vnd.marvin.user.friendly+json",
             "application/vnd.marvin.user.friendly.hateoas+json")]
-        [HttpGet("{userId}",Name ="GetUser")]
+        [HttpGet("{userId}", Name = "GetUser")]
         public async Task<IActionResult> GetUser(int userId, string fields,
             [FromHeader(Name = "Accept")]string mediaType)
         {
@@ -107,6 +108,53 @@ namespace RESTfulApi_Reddit.Controllers
             return Ok(friendlyResourceToReturn);
         }
 
+        [HttpGet(Name = "GetUsers")]
+        [HttpHead]
+        public async Task<IActionResult> GetUsers(
+            [FromQuery]ResourceParameters userResourceParameters)
+        {
+            if (!_propertyCheckerService.TypeHasProperties<UserDto>(userResourceParameters.Fields))
+            {
+                return BadRequest();
+            }
+
+            var usersFromRepo = await _userRepository.GetUsersAsync(userResourceParameters);
+
+            var paginationMetadata = new
+            {
+                totalCount = usersFromRepo.TotalCount,
+                pageSize = usersFromRepo.PageSize,
+                currentPage = usersFromRepo.CurrentPage,
+                totalPages = usersFromRepo.TotalPages
+            };
+
+            Response.Headers.Add("X-Pagination",
+                JsonSerializer.Serialize(paginationMetadata));
+
+            var links = CreateLinksForUsers(userResourceParameters,
+                usersFromRepo.HasNext,
+                usersFromRepo.HasPrevious);
+
+            var shapedUsers = _mapper.Map<IEnumerable<UserDto>>(usersFromRepo)
+                               .ShapeData(userResourceParameters.Fields);
+
+            var shapedUsersWithLinks = shapedUsers.Select(user =>
+            {
+                var userAsDictionary = user as IDictionary<string, object>;
+                var userLinks = CreateLinksForUser((int)userAsDictionary["Id"], null);
+                userAsDictionary.Add("links", userLinks);
+                return userAsDictionary;
+            });
+
+            var linkedCollectionResource = new
+            {
+                value = shapedUsersWithLinks,
+                links
+            };
+
+            return Ok(linkedCollectionResource);
+        }
+
         private IEnumerable<LinkDto> CreateLinksForUser(int userId, string fields)
         {
             var links = new List<LinkDto>();
@@ -146,7 +194,7 @@ namespace RESTfulApi_Reddit.Controllers
         }
 
 
-        private IEnumerable<LinkDto> CreateLinksForUserPosts(ResourceParameters resourceParameters,
+        private IEnumerable<LinkDto> CreateLinksForUsers(ResourceParameters resourceParameters,
             bool hasNext, bool hasPrevious)
         {
 

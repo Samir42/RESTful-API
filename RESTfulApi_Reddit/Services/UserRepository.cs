@@ -1,16 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RESTfulApi_Reddit.DbContexts;
 using RESTfulApi_Reddit.Entities;
+using RESTfulApi_Reddit.Helpers;
+using RESTfulApi_Reddit.ResourceParameter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.Services {
-    public class UserRepository : IUserRepository {
+namespace RESTfulApi_Reddit.Services
+{
+    public class UserRepository : IUserRepository
+    {
         private RedditDbContext _context;
 
-        public UserRepository(RedditDbContext context) {
+        public UserRepository(RedditDbContext context)
+        {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -24,8 +29,32 @@ namespace RESTfulApi_Reddit.Services {
             return await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
         }
 
-        public async Task<bool> UserExistsAsync(int userId) {
-            if (userId <= 0) {
+        public async Task<PagedList<User>> GetUsersAsync(ResourceParameters usersResourceParameters)
+        {
+
+            if (usersResourceParameters == null)
+            {
+                throw new ArgumentNullException(nameof(usersResourceParameters));
+            }
+
+            var collection = _context.Users as IQueryable<User>;
+
+            if (!string.IsNullOrWhiteSpace(usersResourceParameters.SearchQuery))
+            {
+                var searchQuery = usersResourceParameters.SearchQuery.Trim();
+
+                collection = collection.Where(x => x.Name.Contains(searchQuery) || x.Surname.Contains(searchQuery)
+                                                || x.About.Contains(searchQuery));
+            }
+            return await PagedList<User>.Create(collection,
+                usersResourceParameters.PageNumber,
+                usersResourceParameters.PageSize);
+        }
+
+        public async Task<bool> UserExistsAsync(int userId)
+        {
+            if (userId <= 0)
+            {
                 throw new ArgumentException("userId can not be less than 1");
             }
 
