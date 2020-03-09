@@ -14,6 +14,7 @@ namespace RESTfulApi_Reddit.Profiles
         {
             CreateMap<UserPost, UserPostDto>();
             CreateMap<UserPostForCreationDto, UserPost>();
+            CreateMap<UserPost, UserPostForUpdateDto>();
             CreateMap<UserPostForUpdateDto, UserPost>();
             CreateMap<UserPostDto, UserPost>();
         }

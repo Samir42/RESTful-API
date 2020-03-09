@@ -13,17 +13,20 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.Controllers {
+namespace RESTfulApi_Reddit.Controllers
+{
     [ApiController]
     [Route("api/users/{userId}/posts")]
-    public class PostsController : ControllerBase {
+    public class PostsController : ControllerBase
+    {
         private readonly IPostRepository _postRepository;
         private readonly IPropertyCheckerService _propertyCheckerService;
         private readonly IMapper _mapper;
         private readonly IUserRepository _userRepository;
 
         public PostsController(IPostRepository postRepository, IUserRepository userRepository,
-            IPropertyCheckerService propertyCheckerService, IMapper mapper) {
+            IPropertyCheckerService propertyCheckerService, IMapper mapper)
+        {
             _postRepository = postRepository ??
                 throw new ArgumentNullException(nameof(postRepository));
             _propertyCheckerService = propertyCheckerService ??
@@ -39,21 +42,25 @@ namespace RESTfulApi_Reddit.Controllers {
             "application/vnd.marvin.hateoas+json")]
         [HttpGet("{userPostId}", Name = "GetUserPost")]
         public async Task<IActionResult> GetUserPost(int userPostId, string fields,
-            [FromHeader(Name = "Accept")]string mediaType) {
+            [FromHeader(Name = "Accept")]string mediaType)
+        {
 
             // we will not return another type 
             if (!MediaTypeHeaderValue.TryParse(mediaType,
-                out MediaTypeHeaderValue parsedMediaType)) {
+                out MediaTypeHeaderValue parsedMediaType))
+            {
                 return BadRequest();
             }
 
-            if (!_propertyCheckerService.TypeHasProperties<UserPostDto>(fields)) {
+            if (!_propertyCheckerService.TypeHasProperties<UserPostDto>(fields))
+            {
                 return BadRequest();
             }
 
             var userPostFromRepo = await _postRepository.GetUserPostAsync(userPostId);
 
-            if (userPostFromRepo == null) {
+            if (userPostFromRepo == null)
+            {
                 return NotFound();
             }
 
@@ -66,7 +73,8 @@ namespace RESTfulApi_Reddit.Controllers {
 
             var shapedUserPost = _mapper.Map<UserPostDto>(userPostFromRepo).ShapeData(fields) as IDictionary<string, object>;
 
-            if (includeLinks) {
+            if (includeLinks)
+            {
                 links = CreateLinksForUserPost(userPostId, fields);
                 shapedUserPost.Add("links", links);
             }
@@ -96,10 +104,12 @@ namespace RESTfulApi_Reddit.Controllers {
         }
 
         [HttpDelete("{userPostId}", Name = "DeleteUserPost")]
-        public async Task<IActionResult> DeleteUserPost(int userPostId) {
+        public async Task<IActionResult> DeleteUserPost(int userPostId)
+        {
             var userPost = await _postRepository.GetUserPostAsync(userPostId);
 
-            if (userPost == null) {
+            if (userPost == null)
+            {
                 return NotFound();
             }
 
@@ -111,8 +121,10 @@ namespace RESTfulApi_Reddit.Controllers {
         }
 
         [HttpPost(Name = "CreateUserPostForUser")]
-        public async Task<IActionResult> CreateUserPost(int userId, UserPostForCreationDto userPostForCreationDto) {
-            if (!await _userRepository.UserExistsAsync(userId)) {
+        public async Task<IActionResult> CreateUserPost(int userId, UserPostForCreationDto userPostForCreationDto)
+        {
+            if (!await _userRepository.UserExistsAsync(userId))
+            {
                 return NotFound();
             }
 
@@ -131,31 +143,65 @@ namespace RESTfulApi_Reddit.Controllers {
         }
 
         [HttpPatch("{userPostId}")]
-        public async Task<IActionResult> PartiallyUpdateUserPostForUser(int userId,int userPostId,
+        public async Task<IActionResult> PartiallyUpdateUserPostForUser(int userId, int userPostId,
             JsonPatchDocument<UserPostForUpdateDto> patchDocument)
         {
-            if(! await _userRepository.UserExistsAsync(userId))
+            if (!await _userRepository.UserExistsAsync(userId))
             {
                 return NotFound();
             }
 
-            var userPostFromRepo = _postRepository.GetUserPostAsync(userId, userPostId);
+            var userPostFromRepo = await _postRepository.GetUserPostAsync(userId, userPostId);
 
-            //If does not exists do something 
-            if(userPostFromRepo == null)
+            //If does not exists create new one , add db
+            if (userPostFromRepo == null)
             {
-                //i have to do something here
+                var userPostDto = new UserPostForUpdateDto();
+
+                //AddValidation
+                patchDocument.ApplyTo(userPostDto, ModelState);
+
+                if (!TryValidateModel(userPostDto))
+                {
+                    return ValidationProblem(ModelState);
+                }
+
+                var userPostToAdd = _mapper.Map<UserPost>(userPostDto);
+
+                _postRepository.AddUserPost(userId, userPostToAdd);
+
+                await _postRepository.SaveChangesAsync();
+
+                var userPostToReturn = _mapper.Map<UserPostDto>(userPostToAdd);
+
+                return CreatedAtRoute("GetUserPostsForUser",
+                    new { userId = userId, userPostId = userPostToReturn.Id },
+                    userPostToReturn);
             }
 
-            //else create
+            var userPostToPatch = _mapper.Map<UserPostForUpdateDto>(userPostFromRepo);
 
-            return null;
+            //Add validation
+            patchDocument.ApplyTo(userPostToPatch, ModelState);
+
+            if (!TryValidateModel(userPostToPatch))
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            _mapper.Map(userPostToPatch, userPostFromRepo);
+
+            _postRepository.UpdateUserPost(userPostFromRepo);
+
+            await _postRepository.SaveChangesAsync();
+
+            return NoContent();
         }
 
-        [HttpPut("{userPostId}",Name ="UpdateUserPostForUser")]
-        public async Task<IActionResult> UpdateUserPostForUser(int userId,int userPostId,UserPostForUpdateDto userPost)
+        [HttpPut("{userPostId}", Name = "UpdateUserPostForUser")]
+        public async Task<IActionResult> UpdateUserPostForUser(int userId, int userPostId, UserPostForUpdateDto userPost)
         {
-            if(! await _userRepository.UserExistsAsync(userId))
+            if (!await _userRepository.UserExistsAsync(userId))
             {
                 return NotFound();
             }
@@ -180,7 +226,7 @@ namespace RESTfulApi_Reddit.Controllers {
             }
 
             //else update
-             _mapper.Map(userPost, userPostFromRepo);
+            _mapper.Map(userPost, userPostFromRepo);
 
             _postRepository.UpdateUserPost(userPostFromRepo);
 
@@ -191,15 +237,18 @@ namespace RESTfulApi_Reddit.Controllers {
 
         [HttpGet(Name = "GetUserPostsForUser")]
         [HttpHead]
-        public async Task<IActionResult> GetUserPosts([FromQuery]PostsResourceParameters postsResourceParameters) {
+        public async Task<IActionResult> GetUserPosts([FromQuery]PostsResourceParameters postsResourceParameters)
+        {
 
-            if (!_propertyCheckerService.TypeHasProperties<UserPostDto>(postsResourceParameters.Fields)) {
+            if (!_propertyCheckerService.TypeHasProperties<UserPostDto>(postsResourceParameters.Fields))
+            {
                 return BadRequest();
             }
 
             var userPostsFromRepo = await _postRepository.GetUserPostsAsync(postsResourceParameters);
 
-            var paginationMetadata = new {
+            var paginationMetadata = new
+            {
                 totalCount = userPostsFromRepo.TotalCount,
                 pageSize = userPostsFromRepo.PageSize,
                 currentPage = userPostsFromRepo.CurrentPage,
@@ -215,7 +264,8 @@ namespace RESTfulApi_Reddit.Controllers {
 
             var shapedUserPosts = _mapper.Map<IEnumerable<UserPostDto>>(userPostsFromRepo).ShapeData(postsResourceParameters.Fields);
 
-            var shapedUserPostsWithLinks = shapedUserPosts.Select(userPost => {
+            var shapedUserPostsWithLinks = shapedUserPosts.Select(userPost =>
+            {
                 var userPostAsDictionary = userPost as IDictionary<string, object>;
                 var userPostLinks = CreateLinksForUserPost((int)userPostAsDictionary["Id"], null);
                 userPostAsDictionary.Add("links", userPostLinks);
@@ -224,7 +274,8 @@ namespace RESTfulApi_Reddit.Controllers {
 
 
             // To be cleaner and understandeable
-            var linkedCollectionResource = new {
+            var linkedCollectionResource = new
+            {
                 value = shapedUserPostsWithLinks,
                 links
             };
@@ -233,17 +284,20 @@ namespace RESTfulApi_Reddit.Controllers {
         }
 
 
-        private IEnumerable<LinkDto> CreateLinksForUserPost(int userPostId, string fields) {
+        private IEnumerable<LinkDto> CreateLinksForUserPost(int userPostId, string fields)
+        {
             var links = new List<LinkDto>();
 
 
             //If data shaping haven't used    return simple Link , else return shaped data link
-            if (string.IsNullOrWhiteSpace(fields)) {
+            if (string.IsNullOrWhiteSpace(fields))
+            {
                 links.Add(new LinkDto(Url.Link("GetUserPost", new { userPostId }),
                     "self",
                     "GET"));
             }
-            else {
+            else
+            {
                 links.Add(new LinkDto(Url.Link("GetUserPost", new { userPostId, fields }),
                     "self",
                     "GET"));
@@ -270,19 +324,22 @@ namespace RESTfulApi_Reddit.Controllers {
 
 
         private IEnumerable<LinkDto> CreateLinksForUserPosts(PostsResourceParameters postsResourceParameters,
-            bool hasNext, bool hasPrevious) {
+            bool hasNext, bool hasPrevious)
+        {
 
             var links = new List<LinkDto>();
 
             links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.CurrentPage),
                 "self", "GET"));
 
-            if (hasNext) {
+            if (hasNext)
+            {
                 links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.NextPage),
                "self", "GET"));
             }
 
-            if (hasPrevious) {
+            if (hasPrevious)
+            {
                 links.Add(new LinkDto(CreateUserPostsResourceUri(postsResourceParameters, ResourceUriType.PreviousPage),
                "self", "GET"));
             }
@@ -293,13 +350,16 @@ namespace RESTfulApi_Reddit.Controllers {
 
 
         private string CreateUserPostsResourceUri(PostsResourceParameters postsResourceParameters,
-            ResourceUriType type) {
+            ResourceUriType type)
+        {
 
 
-            switch (type) {
+            switch (type)
+            {
                 case ResourceUriType.PreviousPage:
                     return Url.Link("GetUserPostsForUser",
-                        new {
+                        new
+                        {
                             fields = postsResourceParameters.Fields,
                             pageNumber = postsResourceParameters.PageNumber - 1,
                             pageSize = postsResourceParameters.PageSize,
@@ -307,7 +367,8 @@ namespace RESTfulApi_Reddit.Controllers {
                         });
                 case ResourceUriType.NextPage:
                     return Url.Link("GetUserPostsForUser",
-                        new {
+                        new
+                        {
                             fields = postsResourceParameters.Fields,
                             pageNumber = postsResourceParameters.PageNumber + 1,
                             pageSize = postsResourceParameters.PageSize,
@@ -317,7 +378,8 @@ namespace RESTfulApi_Reddit.Controllers {
                 case ResourceUriType.CurrentPage:
                 default:
                     return Url.Link("GetUserPostsForUser",
-                       new {
+                       new
+                       {
                            fields = postsResourceParameters.Fields,
                            pageNumber = postsResourceParameters.PageNumber,
                            pageSize = postsResourceParameters.PageSize,
