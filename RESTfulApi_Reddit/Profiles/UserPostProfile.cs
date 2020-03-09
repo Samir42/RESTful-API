@@ -6,11 +6,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.Profiles {
-    public class UserPostProfile : Profile{
-        public UserPostProfile() {
+namespace RESTfulApi_Reddit.Profiles
+{
+    public class UserPostProfile : Profile
+    {
+        public UserPostProfile()
+        {
             CreateMap<UserPost, UserPostDto>();
-            CreateMap<UserPostForCreationDto,UserPost>();
+            CreateMap<UserPostForCreationDto, UserPost>();
+            CreateMap<UserPostForUpdateDto, UserPost>();
             CreateMap<UserPostDto, UserPost>();
         }
     }

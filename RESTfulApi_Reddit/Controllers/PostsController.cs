@@ -129,6 +129,43 @@ namespace RESTfulApi_Reddit.Controllers {
                 userPostToReturn);
         }
 
+        [HttpPut("{userPostId}",Name ="UpdateUserPostForUser")]
+        public async Task<IActionResult> UpdateUserPost(int userId,int userPostId,UserPostForUpdateDto userPost)
+        {
+            if(! await _userRepository.UserExistsAsync(userId))
+            {
+                return NotFound();
+            }
+
+            var userPostFromRepo = await _postRepository.GetUserPostAsync(userId, userPostId);
+
+            //Create if userPost does not exists
+            if (userPostFromRepo == null)
+            {
+                var userPostToAdd = _mapper.Map<UserPost>(userPost);
+                //userPostToAdd.Id = userPostId;
+
+                _postRepository.AddUserPost(userId, userPostToAdd);
+
+                await _postRepository.SaveChangesAsync();
+
+                var userPostToReturn = _mapper.Map<UserPostDto>(userPostToAdd);
+
+                return CreatedAtRoute("GetUserPostsForUser",
+                    new { userId = userId, userPostId = userPostToReturn.Id },
+                    userPostToReturn);
+            }
+
+            //else update
+             _mapper.Map(userPost, userPostFromRepo);
+
+            _postRepository.UpdateUserPost(userPostFromRepo);
+
+            await _postRepository.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         [HttpGet(Name = "GetUserPostsForUser")]
         [HttpHead]
         public async Task<IActionResult> GetUserPosts([FromQuery]PostsResourceParameters postsResourceParameters) {
