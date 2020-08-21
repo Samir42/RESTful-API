@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using RESTfulApi_Reddit.AppServices.Post;
+using RESTfulApi_Reddit.AppServices.User;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;
@@ -17,24 +19,18 @@ namespace RESTfulApi_Reddit.Controllers
 {
     [ApiController]
     [Route("api/users/{userId}/posts")]
-    public class PostsController : ControllerBase
+    public class PostsController : BaseApiController
     {
-        private readonly IPostRepository _postRepository;
         private readonly IPropertyCheckerService _propertyCheckerService;
+        private readonly IPostRepository _postRepository;
         private readonly IMapper _mapper;
-        private readonly IUserRepository _userRepository;
 
-        public PostsController(IPostRepository postRepository, IUserRepository userRepository,
+        public PostsController(IPostRepository postRepository,
             IPropertyCheckerService propertyCheckerService, IMapper mapper)
         {
-            _postRepository = postRepository ??
-                throw new ArgumentNullException(nameof(postRepository));
-            _propertyCheckerService = propertyCheckerService ??
-                throw new ArgumentNullException(nameof(propertyCheckerService));
-            _mapper = mapper ??
-                throw new ArgumentNullException(nameof(mapper));
-            _userRepository = userRepository ??
-               throw new ArgumentNullException(nameof(userRepository));
+            _postRepository = postRepository;
+            _propertyCheckerService = propertyCheckerService;
+            _mapper = mapper;
         }
 
         //We define inside Produces what we will return . This means we'll return app/json and app/hateoas+json
@@ -42,7 +38,7 @@ namespace RESTfulApi_Reddit.Controllers
             "application/vnd.marvin.hateoas+json")]
         [HttpGet("{userPostId}", Name = "GetUserPost")]
         public async Task<IActionResult> GetUserPost(int userPostId, string fields,
-            [FromHeader(Name = "Accept")]string mediaType)
+            [FromHeader(Name = "Accept")] string mediaType)
         {
 
             // we will not return another type 
@@ -57,7 +53,7 @@ namespace RESTfulApi_Reddit.Controllers
                 return BadRequest();
             }
 
-            var userPostFromRepo = await _postRepository.GetUserPostAsync(userPostId);
+            var userPostFromRepo = await Mediator.Send(new GetUserPostByIdQuery(userPostId));
 
             if (userPostFromRepo == null)
             {
@@ -106,16 +102,7 @@ namespace RESTfulApi_Reddit.Controllers
         [HttpDelete("{userPostId}", Name = "DeleteUserPost")]
         public async Task<IActionResult> DeleteUserPost(int userPostId)
         {
-            var userPost = await _postRepository.GetUserPostAsync(userPostId);
-
-            if (userPost == null)
-            {
-                return NotFound();
-            }
-
-            _postRepository.DeleteUserPost(userPost);
-
-            await _postRepository.SaveChangesAsync();
+            await Mediator.Send(new DeleteUserPostCommand(userPostId));
 
             return NoContent();
         }
@@ -123,19 +110,7 @@ namespace RESTfulApi_Reddit.Controllers
         [HttpPost(Name = "CreateUserPostForUser")]
         public async Task<IActionResult> CreateUserPost(int userId, UserPostForCreationDto userPostForCreationDto)
         {
-            if (!await _userRepository.UserExistsAsync(userId))
-            {
-                return NotFound();
-            }
-
-            // error
-            var userPostEntity = _mapper.Map<UserPost>(userPostForCreationDto);
-
-            _postRepository.AddUserPost(userId, userPostEntity);
-
-            await _postRepository.SaveChangesAsync();
-
-            var userPostToReturn = _mapper.Map<UserPostDto>(userPostEntity);
+            var userPostToReturn = await Mediator.Send(new CreateUserPostCommand(userId, userPostForCreationDto));
 
             return CreatedAtRoute("GetUserPostsForUser",
                 new { userId = userId, userPostId = userPostToReturn.Id },
@@ -146,15 +121,17 @@ namespace RESTfulApi_Reddit.Controllers
         public async Task<IActionResult> PartiallyUpdateUserPostForUser(int userId, int userPostId,
             JsonPatchDocument<UserPostForUpdateDto> patchDocument)
         {
-            if (!await _userRepository.UserExistsAsync(userId))
+            bool userExists = await Mediator.Send(new UserExistsQuery(userId));
+
+            if (!userExists)
             {
                 return NotFound();
             }
 
-            var userPostFromRepo = await _postRepository.GetUserPostAsync(userId, userPostId);
+            var userPostFromQuery = await Mediator.Send(new GetUserPostByUserAndPostIdQuery(userId, userPostId));
 
             //If does not exists create new one , add db
-            if (userPostFromRepo == null)
+            if (userPostFromQuery == null)
             {
                 var userPostDto = new UserPostForUpdateDto();
 
@@ -179,7 +156,7 @@ namespace RESTfulApi_Reddit.Controllers
                     userPostToReturn);
             }
 
-            var userPostToPatch = _mapper.Map<UserPostForUpdateDto>(userPostFromRepo);
+            var userPostToPatch = _mapper.Map<UserPostForUpdateDto>(userPostFromQuery);
 
             //Add validation
             patchDocument.ApplyTo(userPostToPatch, ModelState);
@@ -189,9 +166,9 @@ namespace RESTfulApi_Reddit.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            _mapper.Map(userPostToPatch, userPostFromRepo);
+            _mapper.Map(userPostToPatch, userPostFromQuery);
 
-            _postRepository.UpdateUserPost(userPostFromRepo);
+            _postRepository.UpdateUserPost(userPostFromQuery);
 
             await _postRepository.SaveChangesAsync();
 
@@ -201,15 +178,17 @@ namespace RESTfulApi_Reddit.Controllers
         [HttpPut("{userPostId}", Name = "UpdateUserPostForUser")]
         public async Task<IActionResult> UpdateUserPostForUser(int userId, int userPostId, UserPostForUpdateDto userPost)
         {
-            if (!await _userRepository.UserExistsAsync(userId))
+            bool userExists = await Mediator.Send(new UserExistsQuery(userId));
+
+            if (!userExists)
             {
                 return NotFound();
             }
 
-            var userPostFromRepo = await _postRepository.GetUserPostAsync(userId, userPostId);
+            var userPostFromQuery = await Mediator.Send(new GetUserPostByUserAndPostIdQuery(userId, userPostId));
 
             //Create if userPost does not exists
-            if (userPostFromRepo == null)
+            if (userPostFromQuery == null)
             {
                 var userPostToAdd = _mapper.Map<UserPost>(userPost);
                 //userPostToAdd.Id = userPostId;
@@ -226,9 +205,9 @@ namespace RESTfulApi_Reddit.Controllers
             }
 
             //else update
-            _mapper.Map(userPost, userPostFromRepo);
+            _mapper.Map(userPost, userPostFromQuery);
 
-            _postRepository.UpdateUserPost(userPostFromRepo);
+            _postRepository.UpdateUserPost(userPostFromQuery);
 
             await _postRepository.SaveChangesAsync();
 
@@ -245,24 +224,24 @@ namespace RESTfulApi_Reddit.Controllers
                 return BadRequest();
             }
 
-            var userPostsFromRepo = await _postRepository.GetUserPostsAsync(postsResourceParameters);
+            var userPostsFromQuery = await Mediator.Send(new GetUserPostsQuery(postsResourceParameters));
 
             var paginationMetadata = new
             {
-                totalCount = userPostsFromRepo.TotalCount,
-                pageSize = userPostsFromRepo.PageSize,
-                currentPage = userPostsFromRepo.CurrentPage,
-                totalPages = userPostsFromRepo.TotalPages
+                totalCount = userPostsFromQuery.TotalCount,
+                pageSize = userPostsFromQuery.PageSize,
+                currentPage = userPostsFromQuery.CurrentPage,
+                totalPages = userPostsFromQuery.TotalPages
             };
 
             Response.Headers.Add("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));
 
             var links = CreateLinksForUserPosts(postsResourceParameters,
-                userPostsFromRepo.HasNext,
-                userPostsFromRepo.HasPrevious);
+                userPostsFromQuery.HasNext,
+                userPostsFromQuery.HasPrevious);
 
-            var shapedUserPosts = _mapper.Map<IEnumerable<UserPostDto>>(userPostsFromRepo).ShapeData(postsResourceParameters.Fields);
+            var shapedUserPosts = _mapper.Map<IEnumerable<UserPostDto>>(userPostsFromQuery).ShapeData(postsResourceParameters.Fields);
 
             var shapedUserPostsWithLinks = shapedUserPosts.Select(userPost =>
             {

@@ -24,28 +24,12 @@ namespace RESTfulApi_Reddit.Controllers
     public class UsersController : BaseApiController
     {
         private readonly IPropertyCheckerService _propertyCheckerService;
-        private readonly ICommandHandler<DeleteUserCommand> _deleteUserCommandHandler;
-        private readonly IQueryHandler<GetListQuery, PagedList<User>> _getListQueryHandler;
-        private readonly IQueryHandler<GetUserQuery, User> _getUserQueryHandler;
         private readonly IMapper _mapper;
-        //private readonly Messages _messages;
 
-
-        public UsersController(IPropertyCheckerService propertyCheckerService,
-            ICommandHandler<DeleteUserCommand> deleteUserCommandHandler,
-            IQueryHandler<GetListQuery, PagedList<User>> getListQueryHandler,
-            IQueryHandler<GetUserQuery, User> getUserQueryHandler,
-            IMapper mapper)
+        public UsersController(IPropertyCheckerService propertyCheckerService, IMapper mapper)
         {
-            _propertyCheckerService = propertyCheckerService
-                ?? throw new ArgumentNullException(nameof(propertyCheckerService));
-            _mapper = mapper
-                ?? throw new ArgumentNullException(nameof(mapper));
-
-
-            _deleteUserCommandHandler = deleteUserCommandHandler;
-            _getListQueryHandler = getListQueryHandler;
-            _getUserQueryHandler = getUserQueryHandler;
+            _propertyCheckerService = propertyCheckerService;
+            _mapper = mapper;
         }
 
         [Produces("application/json",
@@ -69,7 +53,7 @@ namespace RESTfulApi_Reddit.Controllers
                 return BadRequest();
             }
 
-            var serFromQueryHandler = await _getUserQueryHandler.Handle(new GetUserQuery(userId));
+            var serFromQueryHandler = await Mediator.Send(new GetUserQuery(userId));
 
             if (serFromQueryHandler == null)
             {
@@ -133,7 +117,7 @@ namespace RESTfulApi_Reddit.Controllers
                 return BadRequest();
             }
 
-            var usersFromQueryHandler = await _getListQueryHandler.Handle(new GetListQuery(userResourceParameters));
+            var usersFromQueryHandler = await Mediator.Send(new GetListQuery(userResourceParameters));
 
             var paginationMetadata = new
             {
@@ -173,9 +157,12 @@ namespace RESTfulApi_Reddit.Controllers
         [HttpDelete("{userId}", Name = "DeleteUser")]
         public async Task<IActionResult> DeleteUser(int userId)
         {
-            Result result = await _deleteUserCommandHandler.Handle(new DeleteUserCommand(userId));
+            var result = await Mediator.Send(new DeleteUserCommand(userId));
 
-            return FromResult(result);
+            if (result == 0)
+                return NotFound();
+            else
+                return Ok();
         }
 
         private IEnumerable<LinkDto> CreateLinksForUser(int userId, string fields)

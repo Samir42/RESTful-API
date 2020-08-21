@@ -1,11 +1,13 @@
 ﻿using CSharpFunctionalExtensions;
+using MediatR;
 using RESTfulApi_Reddit.Abstractions;
 using RESTfulApi_Reddit.Services;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RESTfulApi_Reddit.AppServices.User
 {
-    public sealed class DeleteUserCommand : ICommand
+    public sealed class DeleteUserCommand : IRequest<int>
     {
         public readonly int UserId;
 
@@ -15,7 +17,7 @@ namespace RESTfulApi_Reddit.AppServices.User
         }
 
 
-        internal sealed class DeleteUserCommandHandler : ICommandHandler<DeleteUserCommand>
+        internal sealed class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand,int>
         {
             private readonly IUserRepository _userRepository;
 
@@ -24,20 +26,20 @@ namespace RESTfulApi_Reddit.AppServices.User
                 _userRepository = userRepository;
             }
 
-            public async Task<Result> Handle(DeleteUserCommand command)
+            public async Task<int> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
             {
-                var userFromRepo = await _userRepository.GetUserAsync(command.UserId);
+                var userFromRepo = await _userRepository.GetUserAsync(request.UserId);
 
                 if (userFromRepo == null)
                 {
-                    return Result.Failure($"No user found for {command.UserId}");
+                    return 0;
                 }
 
                 _userRepository.DeleteUser(userFromRepo);
 
                 await _userRepository.SaveChangesAsync();
 
-                return Result.Success();
+                return request.UserId;
             }
         }
     }

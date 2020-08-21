@@ -156,5 +156,7 @@ C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\bin\Debug\netcor
 C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\bin\Debug\netcoreapp3.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\bin\Debug\netcoreapp3.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\bin\Debug\netcoreapp3.0\CSharpFunctionalExtensions.dll
+C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\bin\Debug\netcoreapp3.0\MediatR.dll
+C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\bin\Debug\netcoreapp3.0\MediatR.Extensions.Microsoft.DependencyInjection.dll
 C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\obj\Debug\netcoreapp3.0\RESTfulApi_Reddit.csproj.CoreCompileInputs.cache
 C:\Users\SAMIR\source\repos\RESTfulApi_Reddit\RESTfulApi_Reddit\obj\Debug\netcoreapp3.0\RESTfulApi_Reddit.MvcApplicationPartsAssemblyInfo.cache

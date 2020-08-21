@@ -16,6 +16,8 @@ namespace RESTfulApi_Reddit.Utils
             _provider = provider;
         }
 
+
+        // This is what mediator.Send method does
         public Result Dispatch(ICommand command)
         {
             Type type = typeof(ICommandHandler<>);

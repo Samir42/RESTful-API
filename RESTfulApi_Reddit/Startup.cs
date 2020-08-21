@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using RESTfulApi_Reddit.Abstractions;
 using RESTfulApi_Reddit.AppServices.User;
 using RESTfulApi_Reddit.DbContexts;
+using RESTfulApi_Reddit.DI;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Services;
@@ -51,16 +52,7 @@ namespace RESTfulApi_Reddit {
             services.AddDbContext<RedditDbContext>(options => options.UseSqlServer(
                     @"Server=(localdb)\mssqllocaldb;Database=RedditDB;Trusted_Connection=True;"));
             
-
-            //User
-            services.AddScoped<ICommandHandler<DeleteUserCommand>,DeleteUserCommandHandler>();
-            services.AddScoped<IQueryHandler<GetListQuery,PagedList<User>>,GetListQueryHandler>();
-            services.AddScoped<IQueryHandler<GetUserQuery,User>,GetUserQueryHandler>();
-
-            //Post
-
-
-            //services.AddHandlers();
+            services.AddApplication();
 
             services.AddScoped<IPostRepository, PostRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
@@ -69,7 +61,7 @@ namespace RESTfulApi_Reddit {
             services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-            services.AddSingleton<Messages>();
+            //services.AddSingleton<Messages>();
 
         }
 

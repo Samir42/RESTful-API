@@ -1,15 +1,17 @@
-﻿using RESTfulApi_Reddit.Abstractions;
+﻿using MediatR;
+using RESTfulApi_Reddit.Abstractions;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.ResourceParameter;
 using RESTfulApi_Reddit.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RESTfulApi_Reddit.AppServices.User
 {
-    public class GetListQuery : IQuery<PagedList<Entities.User>>
+    public class GetListQuery : IRequest<PagedList<Entities.User>>
     {
         public readonly ResourceParameters ResourceParameters;
 
@@ -19,7 +21,7 @@ namespace RESTfulApi_Reddit.AppServices.User
         }
 
 
-        internal class GetListQueryHandler : IQueryHandler<GetListQuery, PagedList<Entities.User>>
+        internal class GetListQueryHandler : IRequestHandler<GetListQuery, PagedList<Entities.User>>
         {
             private readonly IUserRepository _userRepository;
 
@@ -28,9 +30,9 @@ namespace RESTfulApi_Reddit.AppServices.User
                 _userRepository = userRepository;
             }
 
-            public async Task<PagedList<Entities.User>> Handle(GetListQuery query)
+            public async Task<PagedList<Entities.User>> Handle(GetListQuery request, CancellationToken cancellationToken)
             {
-                var usersFromRepo = await _userRepository.GetUsersAsync(query.ResourceParameters);
+                var usersFromRepo = await _userRepository.GetUsersAsync(request.ResourceParameters);
 
                 return usersFromRepo;
             }

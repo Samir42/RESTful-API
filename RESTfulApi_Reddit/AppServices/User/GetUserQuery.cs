@@ -1,10 +1,12 @@
-﻿using RESTfulApi_Reddit.Abstractions;
+﻿using MediatR;
+using RESTfulApi_Reddit.Abstractions;
 using RESTfulApi_Reddit.Services;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RESTfulApi_Reddit.AppServices.User
 {
-    public sealed class GetUserQuery : IQuery<Entities.User>
+    public sealed class GetUserQuery : IRequest<Entities.User>
     {
         public readonly int UserId;
 
@@ -13,8 +15,7 @@ namespace RESTfulApi_Reddit.AppServices.User
             UserId = userId;
         }
 
-
-        internal sealed class GetUserQueryHandler : IQueryHandler<GetUserQuery, Entities.User>
+        internal sealed class GetUserQueryHandler : IRequestHandler<GetUserQuery, Entities.User>
         {
             private readonly IUserRepository _userRepository;
 
@@ -23,10 +24,9 @@ namespace RESTfulApi_Reddit.AppServices.User
                 _userRepository = userRepository;
             }
 
-
-            public async Task<Entities.User> Handle(GetUserQuery query)
+            public  async Task<Entities.User> Handle(GetUserQuery request, CancellationToken cancellationToken)
             {
-                var userFromRepo = await _userRepository.GetUserAsync(query.UserId);
+                var userFromRepo = await _userRepository.GetUserAsync(request.UserId);
 
                 return userFromRepo;
             }
