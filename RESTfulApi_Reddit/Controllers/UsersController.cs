@@ -1,11 +1,16 @@
 ﻿using AutoMapper;
+using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using Microsoft.VisualStudio.Web.CodeGeneration.Contracts.Messaging;
+using RESTfulApi_Reddit.Abstractions;
+using RESTfulApi_Reddit.AppServices.User;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;
 using RESTfulApi_Reddit.ResourceParameter;
 using RESTfulApi_Reddit.Services;
+using RESTfulApi_Reddit.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,23 +21,32 @@ namespace RESTfulApi_Reddit.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    public class UsersController : ControllerBase
+    public class UsersController : BaseApiController
     {
-        private readonly IUserRepository _userRepository;
         private readonly IPropertyCheckerService _propertyCheckerService;
+        private readonly ICommandHandler<DeleteUserCommand> _deleteUserCommandHandler;
+        private readonly IQueryHandler<GetListQuery, PagedList<User>> _getListQueryHandler;
+        private readonly IQueryHandler<GetUserQuery, User> _getUserQueryHandler;
         private readonly IMapper _mapper;
+        //private readonly Messages _messages;
 
-        public UsersController(IUserRepository userRepository, IPropertyCheckerService propertyCheckerService,
+
+        public UsersController(IPropertyCheckerService propertyCheckerService,
+            ICommandHandler<DeleteUserCommand> deleteUserCommandHandler,
+            IQueryHandler<GetListQuery, PagedList<User>> getListQueryHandler,
+            IQueryHandler<GetUserQuery, User> getUserQueryHandler,
             IMapper mapper)
         {
-            _userRepository = userRepository
-                ?? throw new ArgumentNullException(nameof(userRepository));
             _propertyCheckerService = propertyCheckerService
                 ?? throw new ArgumentNullException(nameof(propertyCheckerService));
             _mapper = mapper
                 ?? throw new ArgumentNullException(nameof(mapper));
-        }
 
+
+            _deleteUserCommandHandler = deleteUserCommandHandler;
+            _getListQueryHandler = getListQueryHandler;
+            _getUserQueryHandler = getUserQueryHandler;
+        }
 
         [Produces("application/json",
             "application/vnd.marvin.hateoas+json",
@@ -42,7 +56,7 @@ namespace RESTfulApi_Reddit.Controllers
             "application/vnd.marvin.user.friendly.hateoas+json")]
         [HttpGet("{userId}", Name = "GetUser")]
         public async Task<IActionResult> GetUser(int userId, string fields,
-            [FromHeader(Name = "Accept")]string mediaType)
+            [FromHeader(Name = "Accept")] string mediaType)
         {
             if (!MediaTypeHeaderValue.TryParse(mediaType,
                 out MediaTypeHeaderValue parsedMediaType))
@@ -55,12 +69,13 @@ namespace RESTfulApi_Reddit.Controllers
                 return BadRequest();
             }
 
-            var userFromRepo = await _userRepository.GetUserAsync(userId);
+            var serFromQueryHandler = await _getUserQueryHandler.Handle(new GetUserQuery(userId));
 
-            if (userFromRepo == null)
+            if (serFromQueryHandler == null)
             {
                 return NotFound();
             }
+
 
 
             //Check whether links wanted
@@ -86,7 +101,7 @@ namespace RESTfulApi_Reddit.Controllers
                 // i will return here userpost owner name and surname as Fulllname
                 // else just send the userpost data
 
-                var fullResourceToReturn = _mapper.Map<UserFullDto>(userFromRepo)
+                var fullResourceToReturn = _mapper.Map<UserFullDto>(serFromQueryHandler)
                         .ShapeData(fields) as IDictionary<string, object>;
 
                 if (includeLinks)
@@ -97,7 +112,7 @@ namespace RESTfulApi_Reddit.Controllers
                 return Ok(fullResourceToReturn);
             }
 
-            var friendlyResourceToReturn = _mapper.Map<UserDto>(userFromRepo)
+            var friendlyResourceToReturn = _mapper.Map<UserDto>(serFromQueryHandler)
                         .ShapeData(fields) as IDictionary<string, object>;
 
             if (includeLinks)
@@ -111,31 +126,31 @@ namespace RESTfulApi_Reddit.Controllers
         [HttpGet(Name = "GetUsers")]
         [HttpHead]
         public async Task<IActionResult> GetUsers(
-            [FromQuery]ResourceParameters userResourceParameters)
+            [FromQuery] ResourceParameters userResourceParameters)
         {
             if (!_propertyCheckerService.TypeHasProperties<UserDto>(userResourceParameters.Fields))
             {
                 return BadRequest();
             }
 
-            var usersFromRepo = await _userRepository.GetUsersAsync(userResourceParameters);
+            var usersFromQueryHandler = await _getListQueryHandler.Handle(new GetListQuery(userResourceParameters));
 
             var paginationMetadata = new
             {
-                totalCount = usersFromRepo.TotalCount,
-                pageSize = usersFromRepo.PageSize,
-                currentPage = usersFromRepo.CurrentPage,
-                totalPages = usersFromRepo.TotalPages
+                totalCount = usersFromQueryHandler.TotalCount,
+                pageSize = usersFromQueryHandler.PageSize,
+                currentPage = usersFromQueryHandler.CurrentPage,
+                totalPages = usersFromQueryHandler.TotalPages
             };
 
             Response.Headers.Add("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));
 
             var links = CreateLinksForUsers(userResourceParameters,
-                usersFromRepo.HasNext,
-                usersFromRepo.HasPrevious);
+                usersFromQueryHandler.HasNext,
+                usersFromQueryHandler.HasPrevious);
 
-            var shapedUsers = _mapper.Map<IEnumerable<UserDto>>(usersFromRepo)
+            var shapedUsers = _mapper.Map<IEnumerable<UserDto>>(usersFromQueryHandler)
                                .ShapeData(userResourceParameters.Fields);
 
             var shapedUsersWithLinks = shapedUsers.Select(user =>
@@ -153,6 +168,14 @@ namespace RESTfulApi_Reddit.Controllers
             };
 
             return Ok(linkedCollectionResource);
+        }
+
+        [HttpDelete("{userId}", Name = "DeleteUser")]
+        public async Task<IActionResult> DeleteUser(int userId)
+        {
+            Result result = await _deleteUserCommandHandler.Handle(new DeleteUserCommand(userId));
+
+            return FromResult(result);
         }
 
         private IEnumerable<LinkDto> CreateLinksForUser(int userId, string fields)

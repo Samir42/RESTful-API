@@ -51,6 +51,16 @@ namespace RESTfulApi_Reddit.Services
                 usersResourceParameters.PageSize);
         }
 
+
+        public void DeleteUser(User user)
+        {
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+
+            _context.Users.Remove(user);
+        }
         public async Task<bool> UserExistsAsync(int userId)
         {
             if (userId <= 0)

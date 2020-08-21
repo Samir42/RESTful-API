@@ -8,10 +8,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using RESTfulApi_Reddit.Abstractions;
+using RESTfulApi_Reddit.AppServices.User;
 using RESTfulApi_Reddit.DbContexts;
+using RESTfulApi_Reddit.Entities;
+using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Services;
+using RESTfulApi_Reddit.Utils;
 using System;
 using System.Linq;
+using static RESTfulApi_Reddit.AppServices.User.DeleteUserCommand;
+using static RESTfulApi_Reddit.AppServices.User.GetListQuery;
+using static RESTfulApi_Reddit.AppServices.User.GetUserQuery;
 
 namespace RESTfulApi_Reddit {
     public class Startup {
@@ -42,13 +50,27 @@ namespace RESTfulApi_Reddit {
 
             services.AddDbContext<RedditDbContext>(options => options.UseSqlServer(
                     @"Server=(localdb)\mssqllocaldb;Database=RedditDB;Trusted_Connection=True;"));
+            
+
+            //User
+            services.AddScoped<ICommandHandler<DeleteUserCommand>,DeleteUserCommandHandler>();
+            services.AddScoped<IQueryHandler<GetListQuery,PagedList<User>>,GetListQueryHandler>();
+            services.AddScoped<IQueryHandler<GetUserQuery,User>,GetUserQueryHandler>();
+
+            //Post
+
+
+            //services.AddHandlers();
 
             services.AddScoped<IPostRepository, PostRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
 
+
             services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            services.AddSingleton<Messages>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
