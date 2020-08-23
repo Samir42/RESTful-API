@@ -2,15 +2,13 @@
 using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
-using Microsoft.VisualStudio.Web.CodeGeneration.Contracts.Messaging;
-using RESTfulApi_Reddit.Abstractions;
-using RESTfulApi_Reddit.AppServices.User;
+using RESTfulApi_Reddit.AppServices.Commands;
+using RESTfulApi_Reddit.AppServices.Queries;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;
 using RESTfulApi_Reddit.ResourceParameter;
 using RESTfulApi_Reddit.Services;
-using RESTfulApi_Reddit.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -4,7 +4,7 @@ using RESTfulApi_Reddit.Services;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.AppServices.User
+namespace RESTfulApi_Reddit.AppServices.Queries
 {
     public sealed class GetUserQuery : IRequest<Entities.User>
     {

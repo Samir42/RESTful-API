@@ -1,12 +1,9 @@
 ﻿using MediatR;
 using RESTfulApi_Reddit.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.AppServices.User
+namespace RESTfulApi_Reddit.AppServices.Queries
 {
     public class UserExistsQuery : IRequest<bool>
     {

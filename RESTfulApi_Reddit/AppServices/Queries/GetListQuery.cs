@@ -1,15 +1,11 @@
 ﻿using MediatR;
-using RESTfulApi_Reddit.Abstractions;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.ResourceParameter;
 using RESTfulApi_Reddit.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.AppServices.User
+namespace RESTfulApi_Reddit.AppServices.Queries
 {
     public class GetListQuery : IRequest<PagedList<Entities.User>>
     {

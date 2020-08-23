@@ -4,7 +4,7 @@ using RESTfulApi_Reddit.Services;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.AppServices.Post
+namespace RESTfulApi_Reddit.AppServices.Queries
 {
     public class GetUserPostByUserAndPostIdQuery : IRequest<UserPost>
     {

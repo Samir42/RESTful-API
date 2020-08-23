@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
-using RESTfulApi_Reddit.AppServices.Post;
-using RESTfulApi_Reddit.AppServices.User;
+using RESTfulApi_Reddit.AppServices.Commands;
+using RESTfulApi_Reddit.AppServices.Queries;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Helpers;
 using RESTfulApi_Reddit.Models;

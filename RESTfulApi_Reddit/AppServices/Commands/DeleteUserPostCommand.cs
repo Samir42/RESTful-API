@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.AppServices.Post
+namespace RESTfulApi_Reddit.AppServices.Commands
 {
     public class DeleteUserPostCommand : IRequest<int>
     {

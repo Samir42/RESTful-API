@@ -3,13 +3,10 @@ using MediatR;
 using RESTfulApi_Reddit.Entities;
 using RESTfulApi_Reddit.Models;
 using RESTfulApi_Reddit.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RESTfulApi_Reddit.AppServices.Post
+namespace RESTfulApi_Reddit.AppServices.Commands
 {
     public class CreateUserPostCommand : IRequest<UserPostDto>
     {
